@@ -1,26 +1,27 @@
+// src/App.tsx
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import CourseSelectionPage from './pages/CourseSelectionPage';
+import PlayerSetupPage from './pages/PlayerSetupPage';
+import ScoreHolePage from './pages/ScoreHolePage';
+import ScorecardView from './pages/ScorecardView';
+import { RoundProvider } from './context/RoundContext';
 
-function App() {
+const App: React.FC = () => {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <RoundProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<CourseSelectionPage />} />
+          <Route path="/select-course" element={<CourseSelectionPage />} />
+          <Route path="/add-players" element={<PlayerSetupPage />} />
+          <Route path="/score/:holeNumber" element={<ScoreHolePage />} />
+          <Route path="/scorecard/:scorecardId" element={<ScorecardView />} />
+          <Route path="*" element={<Navigate replace to="/" />} />
+        </Routes>
+      </Router>
+    </RoundProvider>
   );
-}
+};
 
 export default App;
