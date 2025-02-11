@@ -6,6 +6,7 @@ import PlayerSetupPage from './pages/PlayerSetupPage';
 import ScoreHolePage from './pages/ScoreHolePage';
 import ScorecardView from './pages/ScorecardView';
 import { RoundProvider } from './context/RoundContext';
+import { Analytics } from "@vercel/analytics/react";
 
 const App: React.FC = () => {
   return (
@@ -20,6 +21,7 @@ const App: React.FC = () => {
           <Route path="*" element={<Navigate replace to="/" />} />
         </Routes>
       </Router>
+      <Analytics />
     </RoundProvider>
   );
 };
