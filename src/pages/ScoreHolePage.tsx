@@ -3,6 +3,8 @@ import React, { useContext } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RoundContext } from '../context/RoundContext';
 import { v4 as uuidv4 } from 'uuid';
+import HoleSlider from '../components/HoleSlider';
+import ScoreAdjuster from '../components/ScoreAdjuster';
 
 const ScoreHolePage: React.FC = () => {
   const { holeNumber } = useParams<{ holeNumber: string }>();
@@ -14,17 +16,19 @@ const ScoreHolePage: React.FC = () => {
     return <div>No course selected. Please go back and select a course.</div>;
   }
 
+  // Get the par for the current hole.
   const currentPar = selectedCourse.par[currentHole - 1];
 
-  const handleScoreChange = (playerId: string, score: number) => {
+  // Update the score for a given player on the current hole.
+  const updateScore = (playerId: string, newScore: number) => {
     setScores(prevScores => {
       const existing = prevScores.find(s => s.playerId === playerId && s.holeNumber === currentHole);
       if (existing) {
         return prevScores.map(s =>
-          s.playerId === playerId && s.holeNumber === currentHole ? { ...s, score } : s
+          s.playerId === playerId && s.holeNumber === currentHole ? { ...s, score: newScore } : s
         );
       } else {
-        return [...prevScores, { playerId, holeNumber: currentHole, score }];
+        return [...prevScores, { playerId, holeNumber: currentHole, score: newScore }];
       }
     });
   };
@@ -35,14 +39,13 @@ const ScoreHolePage: React.FC = () => {
     }
   };
 
-  // Finish round by filling missing scores with the hole's par, saving the scorecard,
-  // and navigating to the detailed scorecard view.
   const finishRound = () => {
     let finalScores = [...scores];
     for (let hole = 1; hole <= selectedCourse.holes; hole++) {
       players.forEach(player => {
         const exists = finalScores.some(s => s.playerId === player.id && s.holeNumber === hole);
         if (!exists) {
+          // If the user never set a score, default to par.
           const parForHole = selectedCourse.par[hole - 1];
           finalScores.push({ playerId: player.id, holeNumber: hole, score: parForHole });
         }
@@ -60,51 +63,56 @@ const ScoreHolePage: React.FC = () => {
     existingScorecards.push(finalScorecard);
     localStorage.setItem("scorecards", JSON.stringify(existingScorecards));
     alert("Round finished and saved locally!");
-    // Navigate to the detailed scorecard view instead of the course selection.
     navigate(`/scorecard/${finalScorecard.id}`);
   };
 
   return (
-    <div>
-      <h2>{selectedCourse.name} - Hole {currentHole}</h2>
-      <p>Par: {currentPar}</p>
+    <div style={{
+      display: 'flex', 
+      flexDirection: 'column',
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      padding: '1rem',
+      maxWidth: '500px',
+      margin: '0 auto'
+    }}>
+      <h2 style={{ textAlign: 'center' }}>{selectedCourse.name} - Hole {currentHole}</h2>
+      <p style={{ fontSize: '1rem', marginBottom: '1rem' }}>Par: {currentPar}</p>
+
+      {/* Render ScoreAdjuster for each player */}
       {players.map(player => {
-        const playerScore = scores.find(s => s.playerId === player.id && s.holeNumber === currentHole)?.score || '';
-        return (
-          <div key={player.id}>
-            <span>{player.name}: </span>
-            <input
-              type="number"
-              value={playerScore}
-              onChange={(e) => handleScoreChange(player.id, Number(e.target.value))}
-            />
-          </div>
-        );
-      })}
-      <div style={{ marginTop: '1rem' }}>
-        <button onClick={() => goToHole(currentHole - 1)} disabled={currentHole === 1}>
-          Previous Hole
-        </button>
-        {currentHole < selectedCourse.holes ? (
-          <button onClick={() => goToHole(currentHole + 1)}>Next Hole</button>
-        ) : (
-          <button onClick={finishRound}>Finish Round</button>
-        )}
-      </div>
-      <div style={{ marginTop: '1rem' }}>
-        <label htmlFor="holeSlider">Jump to Hole: </label>
-        <input
-          id="holeSlider"
-          type="range"
-          min="1"
-          max={selectedCourse.holes}
-          value={currentHole}
-          onChange={(e) => goToHole(Number(e.target.value))}
-        />
-      </div>
+  // Look up the existing score for this player on the current hole
+  const savedScore = scores.find(s => s.playerId === player.id && s.holeNumber === currentHole)?.score ?? null;
+  return (
+    <div key={player.id} style={{ marginBottom: '1rem', width: '100%', textAlign: 'center' }}>
+      <p style={{ margin: '0.5rem 0' }}>{player.name}</p>
+      <ScoreAdjuster 
+        key={`${player.id}-${currentHole}`} // This forces remount when currentHole changes.
+        initialScore={currentPar} 
+        existingScore={savedScore}
+        onScoreChange={(newScore) => updateScore(player.id, newScore)}
+      />
+    </div>
+  );
+})}
+
+      {/* Navigation Buttons */}
+     {/* Finish Round Button: Only display on the final hole */}
+{currentHole === selectedCourse.holes && (
+  <div style={{ marginTop: '1rem', width: '100%', display: 'flex', justifyContent: 'center' }}>
+    <button onClick={finishRound}>Finish Round</button>
+  </div>
+)}
+
+      {/* Prominent Hole Slider showing a range of holes */}
+      <HoleSlider 
+        min={1} 
+        max={selectedCourse.holes} 
+        value={currentHole} 
+        onChange={goToHole} 
+      />
     </div>
   );
 };
 
 export default ScoreHolePage;
-
